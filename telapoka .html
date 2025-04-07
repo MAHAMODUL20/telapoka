@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Roach - Gen Z Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;700&family=Press+Start+2P&family=Roboto:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #87CEEB;
+            font-family: 'Roboto', 'Hind Siliguri', sans-serif;
+            color: #333;
+            touch-action: manipulation;
+        }
+
+        h1 {
+            color: #FF1493;
+            text-shadow: 2px 2px #000;
+            font-family: 'Press Start 2P', cursive;
+            margin-bottom: 5px;
+            text-align: center;
+            font-size: clamp(1.2em, 4vw, 1.8em);
+            flex-shrink: 0;
+        }
+
+        /* Container for canvas and overlay - controls max size */
+        #gameContainer {
+            position: relative;
+            width: 95vw;
+            height: 90vh;
+            /* Increased max-width significantly for larger screens */
+            max-width: 900px;
+            max-height: 95vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            background-color: #f0f0f0; /* Fallback, drawn over */
+            border: 5px solid #333;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            image-rendering: pixelated; /* Optional: For sharper pixel art if used */
+            image-rendering: crisp-edges; /* Optional: For sharper pixel art if used */
+        }
+
+        /* Message Overlay Styling (minor adjustments if needed) */
+        #messageOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            font-size: clamp(1em, 3vw, 1.2em);
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            border-radius: 5px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        #messageOverlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #messageOverlay h2 {
+            font-family: 'Press Start 2P', cursive;
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: clamp(1.2em, 5vw, 1.8em);
+            text-shadow: 2px 2px #000;
+            line-height: 1.2;
+        }
+
+        #messageOverlay p {
+            margin: 8px 0;
+            font-size: clamp(0.9em, 2.5vw, 1.1em);
+            font-weight: bold;
+        }
+
+        #messageOverlay button {
+            padding: clamp(10px, 3vw, 15px) clamp(20px, 5vw, 30px);
+            font-size: clamp(1em, 3vw, 1.2em);
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(145deg, #ff69b4, #ff1493);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        #messageOverlay button:hover {
+            transform: scale(1.05);
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.5);
+        }
+        #messageOverlay button:active {
+            transform: scale(0.98);
+         }
+
+        #gameOverScreen h2 {
+             font-size: clamp(2em, 10vw, 4em);
+             color: #FF4500;
+             margin-bottom: 10px;
+             line-height: 1.1;
+        }
+        #gameOverScreen p {
+            font-size: clamp(1em, 3vw, 1.3em);
+        }
+
+        #scoreDisplay {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(2em, 8vw, 3.5em);
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            text-shadow: 3px 3px #000;
+            z-index: 5;
+            display: none;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+<body>
+
+    <h1>Flappy Roach</h1>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="scoreDisplay">0</div>
+        <div id="messageOverlay">
+            <div id="startScreen">
+                <h2>Flappy Roach</h2>
+                <p>Tap/Click kor to Fly!</p>
+                <button id="startButton">Start Koro!</button>
+            </div>
+            <div id="gameOverScreen" style="display: none;">
+                <h2>Skill Issue!</h2>
+                <p id="finalScore">Score: 0</p>
+                <p id="highScore">Top Score Bro: 0</p>
+                <button id="restartButton">Try Again?</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('gameContainer');
+
+        // DOM Elements
+        const messageOverlay = document.getElementById('messageOverlay');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const highScoreDisplay = document.getElementById('highScore');
+
+        // Game state & Difficulty Parameters
+        let gameState = 'start';
+        let score = 0;
+        let highScore = localStorage.getItem('flappyRoachGenZHighScore') || 0;
+        let frameCount = 0;
+        // -- Difficulty --
+        const initialGameSpeed = 2.0; // Slower start
+        const maxGameSpeed = 7.0; // Max speed remains the same
+        let currentGameSpeed = initialGameSpeed;
+
+        const initialObstacleGap = 200; // Wider initial gap
+        const minObstacleGap = 140; // Minimum gap
+        let currentObstacleGap = initialObstacleGap;
+
+        const initialObstacleFrequency = 120; // Less frequent obstacles initially
+        const minObstacleFrequency = 75; // Max frequency
+        let currentObstacleFrequency = initialObstacleFrequency;
+
+        const speedIncreaseInterval = 600; // Frames between speed increases
+        const difficultyIncreaseScoreInterval = 5; // Increase difficulty every N points
+
+        // Sound Synthesis
+        const synth = new Tone.Synth().toDestination();
+        const hitSound = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 } }).toDestination();
+        const scoreSound = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.05, sustain: 0, release: 0.1 } }).toDestination();
+
+        function playFlapSound() { try { synth.triggerAttackRelease("G5", "16n"); } catch (e) { console.error("Sound Error:", e); } }
+        function playHitSound() { try { hitSound.triggerAttackRelease("C3", "8n"); } catch (e) { console.error("Sound Error:", e); } }
+        function playScoreSound() { try { scoreSound.triggerAttackRelease("E6", "16n"); } catch (e) { console.error("Sound Error:", e); } }
+
+        // Roach properties
+        const roach = {
+            x: 60,
+            y: 200,
+            width: 45,
+            height: 35,
+            gravity: 0.45,
+            lift: -8,
+            velocity: 0,
+            maxVelocity: 10, // Add max downward velocity cap
+            rotation: 0, // Current rotation angle
+            color: '#8B4513',
+            bowColor: '#FF1493'
+        };
+
+        // Obstacle properties
+        const obstacles = [];
+        const obstacleWidth = 70;
+        const obstacleColor = '#2E8B57';
+
+        // Background properties
+        const skyColor = '#87CEEB';
+        const buildingColors = ['#DC143C', '#FFD700', '#4682B4', '#D2B48C', '#A0522D'];
+        let buildings = [];
+        const groundHeight = 50;
+        const groundColor = '#6B8E23';
+
+        // --- Drawing Functions ---
+
+        function drawRoach() {
+            // Save the current context state
+            ctx.save();
+
+            // Translate context to the center of the roach
+            const centerX = roach.x + roach.width / 2;
+            const centerY = roach.y + roach.height / 2;
+            ctx.translate(centerX, centerY);
+
+            // Rotate the context based on roach velocity
+            // Limit rotation angle between approx -30 and +30 degrees
+            const maxRotation = Math.PI / 6; // 30 degrees
+            roach.rotation = Math.max(-maxRotation, Math.min(maxRotation, roach.velocity * 0.05)); // Adjust multiplier 0.05 for sensitivity
+            ctx.rotate(roach.rotation);
+
+            // Draw the roach centered at the translated origin (0, 0)
+            // Body
+            ctx.fillStyle = roach.color;
+            ctx.fillRect(-roach.width / 2, -roach.height / 2, roach.width, roach.height);
+
+            // Bow (adjust position relative to center)
+            const bowWidth = 15;
+            const bowHeight = 10;
+            const bowX = -bowWidth / 2;
+            const bowY = -roach.height / 2 - bowHeight + 2; // Position above the body center
+            ctx.fillStyle = roach.bowColor;
+            ctx.fillRect(bowX, bowY, bowWidth, bowHeight);
+            // Bow ties
+            ctx.beginPath();
+            ctx.moveTo(0, -roach.height / 2 + 2); // Center top of body
+            ctx.lineTo(bowX, bowY + bowHeight / 2); // Left middle of bow rect
+            ctx.lineTo(bowX + bowWidth, bowY + bowHeight / 2); // Right middle of bow rect
+            ctx.closePath();
+            ctx.fill();
+
+            // Restore the context state (removes translation and rotation)
+            ctx.restore();
+        }
+
+
+        function drawObstacles() {
+            ctx.fillStyle = obstacleColor;
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, 0, obstacleWidth, obstacle.topHeight);
+                ctx.fillRect(obstacle.x, canvas.height - obstacle.bottomHeight, obstacleWidth, obstacle.bottomHeight);
+
+                 if (obstacle.hasFlags) {
+                    const flagScale = Math.min(1, canvas.height / 600);
+                    const flagWidth = 15 * flagScale;
+                    const flagHeight = 10 * flagScale;
+                    const flagY = obstacle.topHeight - flagHeight - 5;
+                    const flagX = obstacle.x + obstacleWidth / 2 - flagWidth / 2;
+                    // BD Flag
+                    ctx.fillStyle = '#006a4e'; ctx.fillRect(flagX, flagY, flagWidth, flagHeight);
+                    ctx.fillStyle = '#f42a41'; ctx.beginPath(); ctx.arc(flagX + flagWidth / 2, flagY + flagHeight / 2, flagHeight / 3, 0, Math.PI * 2); ctx.fill();
+                    // PS Flag
+                    const flagYBottom = canvas.height - obstacle.bottomHeight + 5;
+                    const flagHeightBottom = 9 * flagScale; const stripeHeight = flagHeightBottom / 3;
+                    ctx.fillStyle = '#000000'; ctx.fillRect(flagX, flagYBottom, flagWidth, stripeHeight);
+                    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(flagX, flagYBottom + stripeHeight, flagWidth, stripeHeight);
+                    ctx.fillStyle = '#009639'; ctx.fillRect(flagX, flagYBottom + stripeHeight * 2, flagWidth, stripeHeight);
+                    ctx.fillStyle = '#ED2E38'; ctx.beginPath(); ctx.moveTo(flagX, flagYBottom); ctx.lineTo(flagX + flagWidth / 2, flagYBottom + flagHeightBottom / 2); ctx.lineTo(flagX, flagYBottom + flagHeightBottom); ctx.closePath(); ctx.fill();
+                 }
+            });
+        }
+
+         function generateInitialBuildings() {
+             buildings = []; let currentX = -50;
+             while (currentX < canvas.width + 100) {
+                 const buildingHeight = Math.random() * (canvas.height * 0.6) + (canvas.height * 0.15);
+                 const buildingWidth = Math.random() * 80 + 50;
+                 const colorIndex = Math.floor(Math.random() * buildingColors.length);
+                 buildings.push({ x: currentX, y: canvas.height - buildingHeight - groundHeight, width: buildingWidth, height: buildingHeight, color: buildingColors[colorIndex], hasFlag: Math.random() < 0.15 });
+                 currentX += buildingWidth + Math.random() * 15;
+             }
+         }
+
+        function drawBackground() {
+            ctx.fillStyle = skyColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            buildings.forEach(building => {
+                ctx.fillStyle = building.color; ctx.fillRect(building.x, building.y, building.width, building.height);
+                 ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                 for (let wy = building.y + 10; wy < building.y + building.height - 10; wy += 20) {
+                     for (let wx = building.x + 10; wx < building.x + building.width - 10; wx += 25) { ctx.fillRect(wx, wy, 10, 10); }
+                 }
+                if (building.hasFlag) {
+                    const flagScale = Math.min(1, canvas.height / 600); const flagWidth = 12 * flagScale; const flagHeight = 8 * flagScale; const flagX = building.x + building.width / 2 - flagWidth / 2; const flagY = building.y - flagHeight - 5;
+                    ctx.fillStyle = '#777'; ctx.fillRect(flagX + flagWidth / 2 - 1, flagY, 2, 5);
+                    if (Math.random() < 0.5) { /* BD */ ctx.fillStyle = '#006a4e'; ctx.fillRect(flagX, flagY, flagWidth, flagHeight); ctx.fillStyle = '#f42a41'; ctx.beginPath(); ctx.arc(flagX + flagWidth / 2, flagY + flagHeight / 2, flagHeight / 3.5, 0, Math.PI * 2); ctx.fill(); }
+                    else { /* PS */ const stripeHeight = flagHeight / 3; ctx.fillStyle = '#000000'; ctx.fillRect(flagX, flagY, flagWidth, stripeHeight); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(flagX, flagY + stripeHeight, flagWidth, stripeHeight); ctx.fillStyle = '#009639'; ctx.fillRect(flagX, flagY + stripeHeight * 2, flagWidth, stripeHeight); ctx.fillStyle = '#ED2E38'; ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + flagWidth / 2.5, flagY + flagHeight / 2); ctx.lineTo(flagX, flagY + flagHeight); ctx.closePath(); ctx.fill(); }
+                }
+            });
+             ctx.fillStyle = groundColor; ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+        }
+
+        function drawScore() { scoreDisplay.textContent = score; }
+
+        // --- Update Functions ---
+
+        function updateRoach() {
+            roach.velocity += roach.gravity;
+            // Cap downward velocity
+            if (roach.velocity > roach.maxVelocity) {
+                roach.velocity = roach.maxVelocity;
+            }
+            roach.y += roach.velocity;
+
+            // Prevent going off top
+            if (roach.y < 0) { roach.y = 0; roach.velocity = 0; }
+            // Ground collision
+            if (roach.y + roach.height > canvas.height - groundHeight) {
+                roach.y = canvas.height - groundHeight - roach.height;
+                roach.velocity = 0;
+                roach.rotation = 0; // Reset rotation on ground hit
+                endGame();
+            }
+        }
+
+        function updateObstacles() {
+            // Use current difficulty parameters
+            if (frameCount % Math.floor(currentObstacleFrequency) === 0) {
+                const minHeight = 80 * Math.min(1, canvas.height / 500);
+                const dynamicGap = currentObstacleGap * Math.min(1.2, canvas.height / 500);
+                const availableHeight = canvas.height - groundHeight - dynamicGap - (minHeight * 2);
+                const topHeight = Math.random() * Math.max(20, availableHeight) + minHeight;
+                const bottomHeight = canvas.height - groundHeight - topHeight - dynamicGap;
+
+                if (bottomHeight > minHeight) { // Ensure bottom pipe has minimum height too
+                    obstacles.push({
+                        x: canvas.width, topHeight: topHeight, bottomHeight: bottomHeight,
+                        counted: false, hasFlags: Math.random() < 0.2
+                    });
+                }
+            }
+            // Move obstacles using current speed
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= currentGameSpeed;
+                if (!obstacles[i].counted && obstacles[i].x + obstacleWidth / 2 < roach.x) {
+                    score++;
+                    obstacles[i].counted = true;
+                    playScoreSound();
+                    // Check if difficulty should increase based on score
+                    if (score > 0 && score % difficultyIncreaseScoreInterval === 0) {
+                        increaseDifficultyScoreBased();
+                    }
+                }
+                if (obstacles[i].x + obstacleWidth < 0) { obstacles.splice(i, 1); }
+            }
+        }
+
+        function checkCollisions() {
+            for (const obstacle of obstacles) {
+                if ( roach.x < obstacle.x + obstacleWidth && roach.x + roach.width > obstacle.x &&
+                     (roach.y < obstacle.topHeight || roach.y + roach.height > canvas.height - obstacle.bottomHeight) )
+                {
+                    endGame();
+                    return;
+                }
+            }
+        }
+
+        // Function to increase difficulty based on frame count (primarily speed)
+        function increaseDifficultyFrameBased() {
+             if (gameState === 'playing' && frameCount > 0 && frameCount % speedIncreaseInterval === 0 && currentGameSpeed < maxGameSpeed) {
+                 currentGameSpeed = Math.min(maxGameSpeed, currentGameSpeed + 0.25); // Increase speed slightly faster
+                 console.log(`Speed Increased (Frame): ${currentGameSpeed.toFixed(2)}`);
+             }
+        }
+
+        // Function to increase difficulty based on score (gap, frequency)
+        function increaseDifficultyScoreBased() {
+            // Decrease gap
+            if (currentObstacleGap > minObstacleGap) {
+                currentObstacleGap = Math.max(minObstacleGap, currentObstacleGap - 2); // Decrease gap slowly
+                console.log(`Gap Decreased (Score): ${currentObstacleGap}`);
+            }
+            // Decrease frequency (makes obstacles appear more often)
+            if (currentObstacleFrequency > minObstacleFrequency) {
+                 currentObstacleFrequency = Math.max(minObstacleFrequency, currentObstacleFrequency - 1); // Decrease frequency slowly
+                 console.log(`Frequency Decreased (Score): ${currentObstacleFrequency}`);
+            }
+        }
+
+
+        // --- Game Flow ---
+
+        function resetGame() {
+            roach.y = canvas.height / 2 - 50;
+            roach.velocity = 0;
+            roach.rotation = 0; // Reset rotation
+            obstacles.length = 0;
+            score = 0;
+            frameCount = 0;
+            // Reset difficulty parameters
+            currentGameSpeed = initialGameSpeed;
+            currentObstacleGap = initialObstacleGap;
+            currentObstacleFrequency = initialObstacleFrequency;
+            drawScore();
+            messageOverlay.classList.remove('visible');
+            gameOverScreen.style.display = 'none';
+            scoreDisplay.style.display = 'block';
+            generateInitialBuildings();
+        }
+
+        function startGame() {
+            Tone.start().then(() => {
+                console.log("Audio context started.");
+                resetGame();
+                gameState = 'playing';
+                gameLoop();
+            }).catch(e => {
+                 console.error("Failed to start audio context:", e);
+                 resetGame();
+                 gameState = 'playing';
+                 gameLoop();
+            });
+        }
+
+        function endGame() {
+            if (gameState === 'gameOver') return;
+            playHitSound();
+            gameState = 'gameOver';
+            scoreDisplay.style.display = 'none';
+            if (score > highScore) { highScore = score; localStorage.setItem('flappyRoachGenZHighScore', highScore); }
+            finalScoreDisplay.textContent = `Score: ${score}`;
+            highScoreDisplay.textContent = `Top Score Bro: ${highScore}`;
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'block';
+            messageOverlay.classList.add('visible');
+        }
+
+        function flap() {
+            if (gameState === 'playing') {
+                roach.velocity = roach.lift;
+                playFlapSound();
+            }
+        }
+
+        // --- Main Game Loop ---
+
+        function gameLoop() {
+            if (gameState === 'gameOver') return;
+             if (gameState === 'start') {
+                 messageOverlay.classList.add('visible'); startScreen.style.display = 'block'; gameOverScreen.style.display = 'none'; scoreDisplay.style.display = 'none';
+                 drawBackground(); drawRoach(); // Draw initial static frame
+                 return;
+             }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            if (gameState === 'playing') {
+                frameCount++;
+                updateRoach();
+                updateObstacles();
+                checkCollisions();
+                increaseDifficultyFrameBased(); // Speed increases over time
+                // Score-based difficulty increase happens within updateObstacles
+            }
+            drawObstacles();
+            drawRoach(); // Draws the rotated roach
+            drawScore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Event Listeners ---
+        function handleInput(event) {
+             event.preventDefault();
+            if (gameState === 'playing') { if (Tone.context.state !== 'running') { Tone.start(); } flap(); }
+            else if (gameState === 'start' && !messageOverlay.contains(event.target)) { startGame(); }
+            else if (gameState === 'gameOver' && !messageOverlay.contains(event.target)) { startGame(); }
+        }
+        gameContainer.addEventListener('mousedown', handleInput);
+        gameContainer.addEventListener('touchstart', handleInput);
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); if (Tone.context.state !== 'running') { Tone.start(); }
+                if (gameState === 'playing') { flap(); } else if (gameState === 'start') { startGame(); } else if (gameState === 'gameOver') { startGame(); }
+            }
+        });
+        startButton.addEventListener('click', (e) => { e.stopPropagation(); startGame(); });
+        restartButton.addEventListener('click', (e) => { e.stopPropagation(); startGame(); });
+
+        // --- Canvas Resizing ---
+        function resizeCanvas() {
+            const aspectRatio = 9 / 16;
+            const containerWidth = gameContainer.clientWidth; const containerHeight = gameContainer.clientHeight;
+            let newWidth = containerWidth; let newHeight = newWidth / aspectRatio;
+            if (newHeight > containerHeight) { newHeight = containerHeight; newWidth = newHeight * aspectRatio; }
+            canvas.width = Math.floor(newWidth); canvas.height = Math.floor(newHeight);
+            generateInitialBuildings();
+             if (gameState === 'start') { drawBackground(); drawRoach(); }
+             else if (gameState === 'playing' || gameState === 'gameOver') { if(gameState === 'gameOver') { messageOverlay.classList.add('visible'); } }
+             console.log(`Resized Canvas: ${canvas.width}x${canvas.height}`);
+        }
+        // Use ResizeObserver if available
+        if (typeof ResizeObserver !== 'undefined') {
+            const resizeObserver = new ResizeObserver(resizeCanvas);
+            resizeObserver.observe(gameContainer);
+        } else { window.addEventListener('resize', resizeCanvas); }
+
+        // --- Initial Setup ---
+        setTimeout(() => { resizeCanvas(); gameLoop(); }, 50); // Slightly longer delay for initial render
+
+    </script>
+
+</body>
+</html>
